@@ -1,0 +1,36 @@
+---
+- name: Setup
+  hosts: directtome
+  handlers:
+    - name: Setup systemd
+      import_tasks: ansible/snippets/systemdservice.yaml
+  tasks:
+    - name: Download golang
+      shell: wget -q "https://golang.org/dl/go1.15.6.linux-amd64.tar.gz" -P /tmp/
+      args:
+        creates: /tmp/go1.15.6.linux-amd64.tar.gz
+    - name: Install golang
+      unarchive:
+        src: /tmp/go1.15.6.linux-amd64.tar.gz
+        dest: /usr/local/
+    - name: Download Caddy
+      shell: wget -q "https://caddyserver.com/api/download?os=linux&arch=amd64&idempotency=66843533211574" -O /tmp/caddy
+      args:
+        creates: /tmp/caddy
+    - name: Install Caddy
+      copy:
+        src: /tmp/caddy
+        dest: /usr/bin/
+    - name: Setting systemd template for Caddy
+      set_fact:
+        systemdservice_name: caddy
+        systemdservice_execute: /usr/bin/caddy run --environ --resume
+    - name: Check is OS has systemd
+      command: "true"
+      notify: Check is OS has systemd
+    - name: Create caddy service in systemd
+      command: "true"
+      notify: Create X service in systemd
+    - name: Enable and restart caddy service
+      command: "true"
+      notify: Enable and restart X service

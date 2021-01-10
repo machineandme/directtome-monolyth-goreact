@@ -1,0 +1,12 @@
+FROM ubuntu
+RUN apt update && apt install ansible -y
+WORKDIR /tmp/dirrecttome-install
+RUN wget "https://golang.org/dl/go1.15.6.linux-amd64.tar.gz" -P /tmp/
+RUN wget "https://caddyserver.com/api/download?os=linux&arch=amd64&idempotency=66843533211574" -O /tmp/caddy
+RUN ls /tmp
+COPY ./ansible/ ./ansible/
+COPY docker/inventory.yaml ./ansible/
+COPY playbook.yaml .
+WORKDIR /tmp/dirrecttome-install/ansible
+RUN ansible-playbook ../playbook.yaml
+RUN cat /etc/systemd/system/caddy.service
