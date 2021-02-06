@@ -5,12 +5,8 @@ import (
 	"time"
 )
 
-type model interface {
-	GetName() string
-}
-
-// modelWithSystemData is base model that have system fields
-type modelWithSystemData struct {
+// SystemData is model that store system fields
+type SystemData struct {
 	IsActive  bool
 	IsDeleted bool
 	Updated   time.Time
@@ -19,7 +15,7 @@ type modelWithSystemData struct {
 
 // User data model
 type User struct {
-	modelWithSystemData // system fields
+	SystemData // system fields
 
 	BucketKey []byte // Name of personal bucket
 
@@ -40,14 +36,9 @@ type User struct {
 	TimeZone  time.Location
 }
 
-// GetName return model bucket name
-func (User) GetName() string {
-	return "User"
-}
-
 // Domain data model
 type Domain struct {
-	modelWithSystemData // system fields
+	SystemData // system fields
 
 	BucketKey []byte // Name of domain bucket
 
@@ -57,14 +48,9 @@ type Domain struct {
 	NotFoundURL url.URL
 }
 
-// GetName return model bucket name
-func (Domain) GetName() string {
-	return "Domain"
-}
-
 // Redirect data model
 type Redirect struct {
-	modelWithSystemData // system fields
+	SystemData // system fields
 
 	StatisticKey []byte // Relation to Statistic
 
@@ -79,11 +65,6 @@ type Redirect struct {
 	ExpireTime   time.Time
 }
 
-// GetName return model bucket name
-func (Redirect) GetName() string {
-	return "Redirect"
-}
-
 // Features data model that has flags to enable or disable features
 type Features struct {
 	FeatureAutoHTTPS bool
@@ -95,11 +76,6 @@ type Features struct {
 	Additional map[string]bool
 }
 
-// GetName return model bucket name
-func (Features) GetName() string {
-	return "Features"
-}
-
 // Statistic data model that have fields filled with statistics
 type Statistic struct {
 	Clicks         uint64
@@ -109,9 +85,4 @@ type Statistic struct {
 	SocialShareClicks uint64
 
 	ExtendedStats map[string]map[string]uint64
-}
-
-// GetName return model bucket name
-func (Statistic) GetName() string {
-	return "Statistic"
 }

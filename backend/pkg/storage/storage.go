@@ -50,8 +50,8 @@ func (db *Storage) OpenDatabase(path string, bucketVersion string) error {
 		return err
 	}
 	err = db.boltDB.Update(func(tx *bolt.Tx) error {
-		tx.CreateBucketIfNotExists(db.BucketVersion)
-		return nil
+		_, err := tx.CreateBucketIfNotExists(db.BucketVersion)
+		return err
 	})
 	db.writeMutex.Unlock()
 	return err
@@ -93,7 +93,7 @@ func (db *Storage) Connect() error {
 }
 
 // Get data to model by key
-func (db *Storage) Get(dataModel model, bucketKeys [][]byte, key []byte, notify chan bool) error {
+func (db *Storage) Get(dataModel interface{}, bucketKeys [][]byte, key []byte, notify chan bool) error {
 	err := db.Connect()
 	if err != nil {
 		return err
@@ -107,7 +107,7 @@ func (db *Storage) Get(dataModel model, bucketKeys [][]byte, key []byte, notify 
 			for _, bucketKey := range bucketKeys {
 				bucket = bucket.Bucket(bucketKey)
 			}
-			rawData := bucket.Get([]byte(key))
+			rawData := bucket.Get(key)
 			rawDataBuff := bytes.NewBuffer(rawData)
 			dec := gob.NewDecoder(rawDataBuff)
 			return dec.Decode(dataModel)
@@ -122,7 +122,7 @@ func (db *Storage) Get(dataModel model, bucketKeys [][]byte, key []byte, notify 
 }
 
 // Set data to model by key
-func (db *Storage) Set(dataModel model, bucketKeys [][]byte, key []byte) error {
+func (db *Storage) Set(dataModel interface{}, bucketKeys [][]byte, key []byte) error {
 	err := db.Connect()
 	if err != nil {
 		return err
@@ -137,13 +137,13 @@ func (db *Storage) Set(dataModel model, bucketKeys [][]byte, key []byte) error {
 				return err
 			}
 		}
-		rawDataBuff := bytes.NewBuffer(make([]byte, 255))
-		enc := gob.NewEncoder(rawDataBuff)
+		var rawDataBuff bytes.Buffer
+		enc := gob.NewEncoder(&rawDataBuff)
 		err := enc.Encode(dataModel)
 		if err != nil {
 			return err
 		}
-		err = bucket.Put([]byte(key), rawDataBuff.Bytes())
+		err = bucket.Put(key, rawDataBuff.Bytes())
 		return err
 	})
 	db.writeMutex.Unlock()
