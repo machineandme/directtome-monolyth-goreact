@@ -49,10 +49,14 @@
         dest: /usr/local
         remote_src: true
         mode: "777"
-    - name: Upload files
+    - name: Upload backend files
       synchronize:
-        src: ./src/
-        dest: /opt/application/
+        src: ./backend
+        dest: /opt/application/backend
+    - name: Upload frontend files
+      synchronize:
+        src: ./frontend
+        dest: /opt/application/frontend
     - name: Create a directory for binaries
       file:
         path: /opt/application/bin/
