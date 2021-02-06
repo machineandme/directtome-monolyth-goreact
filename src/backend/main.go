@@ -1,12 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"net/http"
 )
 
 func main() {
+	initDatabase()
+	defer stopDatabase()
+	admin := createAdmin()
+	fmt.Printf("%+v\n", admin)
+
 	// Echo instance
 	e := echo.New()
 
