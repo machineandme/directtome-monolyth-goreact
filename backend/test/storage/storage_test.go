@@ -84,3 +84,16 @@ func TestStoreSomething(t *testing.T) {
 	<-readDone
 	assert.Equal(t, gettedDoll, settedDoll)
 }
+
+func TestCreateRedirect(t *testing.T) {
+	databasePath := getDatabasePath(t)
+	repo := &storage.Storage{}
+	repo.OpenDatabase(databasePath, "v0.0.0test")
+	user, err := repo.CreateUser("Oleg")
+	assert.NoError(t, err)
+	domain, err := repo.CreateDomain(user, "mm.local")
+	assert.NoError(t, err)
+	redirect, err := repo.CreateRedirect(user, domain, "mm.local/123", "google.com")
+	assert.NoError(t, err)
+	_ = redirect
+}

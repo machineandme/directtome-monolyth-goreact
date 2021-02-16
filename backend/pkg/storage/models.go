@@ -28,12 +28,10 @@ type User struct {
 	Password    string
 	Tokens      map[string]string
 
-	Country   string
-	City      string
 	LastUA    string
 	Visits    uint64
 	LastVisit time.Time
-	TimeZone  time.Location
+	TrackData string
 }
 
 // Domain data model
