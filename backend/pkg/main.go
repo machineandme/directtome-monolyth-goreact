@@ -1,27 +1,42 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/machineandme/directtome-monolyth-goreact/pkg/plain_http"
 	"github.com/machineandme/directtome-monolyth-goreact/pkg/repository"
 	"github.com/machineandme/directtome-monolyth-goreact/pkg/server"
 )
 
 func main() {
 	ginServer := server.GetServer()
-	storage, quit := repository.NewKVStorage(15 * time.Minute)
+	storage, quit := repository.NewKVStorage(1 * time.Minute)
 	defer close(quit)
 	ginServer.GET("/new", func(ctx *gin.Context) {
 		data := map[string]string{
-			"fromURI":          ctx.Query("from"),
-			"toURL":            ctx.Query("to"),
-			"redirectAfter":    ctx.Query("after"),
-			"forceContentType": ctx.Query("content_type"),
+			"fromURI":         strings.TrimSpace(ctx.Query("from")),
+			"toURL":           strings.Trim(ctx.Query("to"), "/"),
+			"redirectAfter":   strings.TrimSpace(ctx.Query("after")),
+			"urlTemplate":     ctx.Query("urlTemplate"),
+			"methodTemplate":  ctx.Query("methodTemplate"),
+			"headersTemplate": ctx.Query("headersTemplate"),
+			"bodyTemplate":    ctx.Query("bodyTemplate"),
+		}
+		if data["toURL"] != "" {
+			_, err := plain_http.MakeHTTPTemplates(data)
+			if err != nil {
+				ctx.JSON(400, gin.H{
+					"status":   "bad template",
+					"accepted": err.Error(),
+				})
+			}
 		}
 		storage.Set(data["fromURI"], data)
 		ctx.JSON(200, gin.H{
@@ -63,22 +78,42 @@ func main() {
 				data[k] = v
 			}
 		}
-		r, err := json.Marshal(data)
-		if err != nil {
-			fmt.Println(err)
-			ctx.JSON(500, gin.H{
-				"status": "failed to process content",
-			})
-			return
+		if databaseRecord["toURL"] != "" {
+			r, err := json.Marshal(data)
+			if err != nil {
+				ctx.JSON(400, gin.H{
+					"status": "failed to process content",
+				})
+				return
+			}
+			go http.Post(databaseRecord["toURL"], "application/json", bytes.NewBuffer(r))
+		} else {
+			templateMask, _ := plain_http.MakeHTTPTemplates(databaseRecord)
+			plainRequest, err := plain_http.BuildHTTP(templateMask, data)
+			if err != nil {
+				// TODO say about data was wrong
+				ctx.JSON(400, gin.H{
+					"status": "failed to process content",
+				})
+				return
+			}
+			go func() {
+				client := &http.Client{}
+				request, err := http.ReadRequest(bufio.NewReader(strings.NewReader(plainRequest)))
+				if err != nil {
+					fmt.Println("sub request read error:", err)
+				}
+				client.Do(request)
+			}()
+			ctx.Redirect(303, databaseRecord["redirectAfter"])
 		}
-		go http.Post(databaseRecord["toURL"], "application/json", bytes.NewBuffer(r))
-		ctx.JSON(200, gin.H{
-			"status": "ok",
-		})
+		ctx.Redirect(303, databaseRecord["redirectAfter"])
 	})
 	ginServer.POST("/dev/print", func(ctx *gin.Context) {
 		data, _ := ctx.GetRawData()
 		fmt.Println(string(data))
 	})
+	ginServer.StaticFile("/", "../frontend/index.html")
+	ginServer.StaticFile("/logo.png", "../frontend/logo.png")
 	server.RunServer(ginServer)
 }

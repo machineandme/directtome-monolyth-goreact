@@ -18,7 +18,7 @@ func GetServer() *gin.Engine {
 		c.String(http.StatusOK, "pong")
 	})
 	r.GET("/favicon.ico", func(c *gin.Context) {
-		c.String(http.StatusNotFound, "")
+		c.String(http.StatusOK, "")
 	})
 
 	return r
