@@ -50,7 +50,7 @@
                     <div class="field">
                         <label class="label">Method template</label>
                         <div class="control">
-                            <input class="input" type="text" placeholder="POST" name="urlTemplate" v-model="form.new.methodTemplate">
+                            <input class="input" type="text" placeholder="POST" name="methodTemplate" v-model="form.new.methodTemplate">
                         </div>
                     </div>
                     <div class="field">
@@ -104,7 +104,7 @@
                             <span style="display:block;padding-left:2rem;font-family:monospace;"><b>Then</b> Direct To Me service parse input data in any format (query param, form, json, xml, protobuf, messagepack, yaml)</span>
                             <span v-if="form.new._.proMode">
                                 <span style="display:block;padding-left:2rem;font-family:monospace;"><b>Then</b> Direct To Me service convert data as you define into request like:</span>
-                                <span style="display:block;padding-left:4rem;font-family:monospace;">{{methodTemplate}} {{form.new.urlTemplate}} HTTP/2</span>
+                                <span style="display:block;padding-left:4rem;font-family:monospace;">{{methodTemplate}} {{form.new.urlTemplate}} HTTP/1.1</span>
                                 <span style="display:block;padding-left:4rem;font-family:monospace;">{{form.new.headersTemplate}}</span>
                                 <span style="display:block;padding-left:4rem;font-family:monospace;"> </span>
                                 <span style="display:block;padding-left:4rem;font-family:monospace;">{{form.new.bodyTemplate}}</span>

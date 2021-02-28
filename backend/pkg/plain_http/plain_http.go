@@ -35,31 +35,31 @@ func MakeHTTPTemplates(data map[string]string) (map[string]*template.Template, e
 
 // BuildHTTP use templates mask and data to make plain http request
 func BuildHTTP(templates map[string]*template.Template, data map[string]interface{}) (plainRequest string, err error) {
-	methodBuff := bytes.NewBufferString("")
-	err = templates["methodTemplate"].Execute(methodBuff, data)
+	var methodBuff bytes.Buffer
+	err = templates["methodTemplate"].Execute(&methodBuff, data)
 	if err != nil {
 		return
 	}
 	method := methodBuff.String()
-	urlBuff := bytes.NewBufferString("")
-	err = templates["urlTemplate"].Execute(urlBuff, data)
+	var urlBuff bytes.Buffer
+	err = templates["urlTemplate"].Execute(&urlBuff, data)
 	if err != nil {
 		return
 	}
 	url := urlBuff.String()
-	headersBuff := bytes.NewBufferString("")
-	err = templates["headersTemplate"].Execute(headersBuff, data)
+	var headersBuff bytes.Buffer
+	err = templates["headersTemplate"].Execute(&headersBuff, data)
 	if err != nil {
 		return
 	}
 	headers := headersBuff.String()
-	bodyBuff := bytes.NewBufferString("")
-	err = templates["bodyTemplate"].Execute(bodyBuff, data)
+	var bodyBuff bytes.Buffer
+	err = templates["bodyTemplate"].Execute(&bodyBuff, data)
 	if err != nil {
 		return
 	}
 	body := bodyBuff.String()
 	cl := strconv.Itoa(len(body))
-	plainRequest = fmt.Sprintf("%v %v HTTP/2\nContent-Length: %v\n%v\n\n%v", method, url, cl, headers, body)
+	plainRequest = fmt.Sprintf("%v %v HTTP/1.1\nContent-Length: %v\n%v\n\n%v", method, url, cl, headers, body)
 	return
 }

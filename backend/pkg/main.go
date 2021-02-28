@@ -99,9 +99,11 @@ func main() {
 			}
 			go func() {
 				client := &http.Client{}
+				fmt.Println(plainRequest)
 				request, err := http.ReadRequest(bufio.NewReader(strings.NewReader(plainRequest)))
 				if err != nil {
 					fmt.Println("sub request read error:", err)
+					return
 				}
 				client.Do(request)
 			}()
