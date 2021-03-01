@@ -3,7 +3,7 @@ package plain_http
 import (
 	"bytes"
 	"fmt"
-	"strconv"
+	"net/url"
 	"text/template"
 )
 
@@ -34,7 +34,7 @@ func MakeHTTPTemplates(data map[string]string) (map[string]*template.Template, e
 }
 
 // BuildHTTP use templates mask and data to make plain http request
-func BuildHTTP(templates map[string]*template.Template, data map[string]interface{}) (plainRequest string, err error) {
+func BuildHTTP(templates map[string]*template.Template, data map[string]interface{}) (plainRequest string, urlRaw string, body string, err error) {
 	var methodBuff bytes.Buffer
 	err = templates["methodTemplate"].Execute(&methodBuff, data)
 	if err != nil {
@@ -46,7 +46,7 @@ func BuildHTTP(templates map[string]*template.Template, data map[string]interfac
 	if err != nil {
 		return
 	}
-	url := urlBuff.String()
+	urlRaw = urlBuff.String()
 	var headersBuff bytes.Buffer
 	err = templates["headersTemplate"].Execute(&headersBuff, data)
 	if err != nil {
@@ -58,8 +58,11 @@ func BuildHTTP(templates map[string]*template.Template, data map[string]interfac
 	if err != nil {
 		return
 	}
-	body := bodyBuff.String()
-	cl := strconv.Itoa(len(body))
-	plainRequest = fmt.Sprintf("%v %v HTTP/1.1\nContent-Length: %v\n%v\n\n%v", method, url, cl, headers, body)
+	body = bodyBuff.String()
+	urlStruct, err := url.Parse(urlRaw)
+	if err != nil {
+		return
+	}
+	plainRequest = fmt.Sprintf("%v %v HTTP/1.1\n%v\n\n%v", method, urlStruct.RequestURI(), headers, body)
 	return
 }

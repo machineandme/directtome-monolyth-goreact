@@ -89,7 +89,7 @@ func main() {
 			go http.Post(databaseRecord["toURL"], "application/json", bytes.NewBuffer(r))
 		} else {
 			templateMask, _ := plain_http.MakeHTTPTemplates(databaseRecord)
-			plainRequest, err := plain_http.BuildHTTP(templateMask, data)
+			plainRequest, plainRequestURL, plainRequestBody, err := plain_http.BuildHTTP(templateMask, data)
 			if err != nil {
 				// TODO say about data was wrong
 				ctx.JSON(400, gin.H{
@@ -99,13 +99,18 @@ func main() {
 			}
 			go func() {
 				client := &http.Client{}
-				fmt.Println(plainRequest)
 				request, err := http.ReadRequest(bufio.NewReader(strings.NewReader(plainRequest)))
 				if err != nil {
 					fmt.Println("sub request read error:", err)
 					return
 				}
-				client.Do(request)
+				newRequest, err := http.NewRequest(request.Method, plainRequestURL, strings.NewReader(plainRequestBody))
+				if err != nil {
+					fmt.Println("sub request go-read error:", err)
+					return
+				}
+				newRequest.Header = request.Header
+				client.Do(newRequest)
 			}()
 			ctx.Redirect(303, databaseRecord["redirectAfter"])
 		}
