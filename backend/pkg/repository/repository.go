@@ -14,19 +14,22 @@ import (
 
 const dateTimeFilename = "2006_01_02_15.gob"
 
-func getBaseDir() string {
-	path, err := filepath.Abs("./+kvsdata")
-	if err != nil {
-		fmt.Println(err)
-	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		os.MkdirAll(path, os.ModeDir)
-	}
-	return path
+// KeyValueStorage save key value data
+type KeyValueStorage struct {
+	data     map[string]map[string]string
+	mutex    sync.Mutex
+	savePath string
 }
 
-func getLastRecord() (string, error) {
-	files, err := ioutil.ReadDir(getBaseDir())
+func (kv *KeyValueStorage) getBaseDir() string {
+	if _, err := os.Stat(kv.savePath); os.IsNotExist(err) {
+		os.MkdirAll(kv.savePath, os.ModeDir)
+	}
+	return kv.savePath
+}
+
+func (kv *KeyValueStorage) getLastRecord() (string, error) {
+	files, err := ioutil.ReadDir(kv.getBaseDir())
 	if err != nil {
 		return "", err
 	}
@@ -41,27 +44,24 @@ func getLastRecord() (string, error) {
 			}
 		}
 	}
-	return path.Join(getBaseDir(), lastName), nil
-}
-
-// KeyValueStorage save key value data
-type KeyValueStorage struct {
-	data  map[string]map[string]string
-	mutex sync.Mutex
+	if lastName == "" {
+		return "", nil
+	}
+	return path.Join(kv.getBaseDir(), lastName), nil
 }
 
 // Save save data
-func (kv *KeyValueStorage) Save() {
+func (kv *KeyValueStorage) Save() (err error) {
 	buf := bytes.NewBuffer([]byte{})
 	enc := gob.NewEncoder(buf)
 	kv.mutex.Lock()
-	err := enc.Encode(kv.data)
+	err = enc.Encode(kv.data)
 	kv.mutex.Unlock()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	databaseFile, err := os.Create(path.Join(getBaseDir(), time.Now().Format(dateTimeFilename)))
+	databaseFile, err := os.Create(path.Join(kv.getBaseDir(), time.Now().Format(dateTimeFilename)))
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -70,18 +70,21 @@ func (kv *KeyValueStorage) Save() {
 	_, err = databaseFile.Write(buf.Bytes())
 	if err != nil {
 		fmt.Println(err)
-		return
 	}
+	return
 }
 
 // Load data
-func (kv *KeyValueStorage) Load() {
+func (kv *KeyValueStorage) Load() (err error) {
 	kv.mutex.Lock()
 	defer kv.mutex.Unlock()
-	lastRecord, err := getLastRecord()
+	lastRecord, err := kv.getLastRecord()
 	if err != nil {
 		fmt.Println(err)
 		return
+	}
+	if lastRecord == "" {
+		return nil
 	}
 	databaseFile, err := ioutil.ReadFile(lastRecord)
 	if err != nil {
@@ -94,47 +97,59 @@ func (kv *KeyValueStorage) Load() {
 	if err != nil {
 		fmt.Println(err)
 	}
+	return
 }
 
 // AutoInit create new mapping for data, only if needed
 func (kv *KeyValueStorage) AutoInit() {
 	kv.mutex.Lock()
+	defer kv.mutex.Unlock()
 	if len(kv.data) == 0 {
 		kv.data = make(map[string]map[string]string)
 	}
-	kv.mutex.Unlock()
 }
 
 // Set set new value with key
 func (kv *KeyValueStorage) Set(k string, v map[string]string) {
 	kv.mutex.Lock()
+	defer kv.mutex.Unlock()
 	kv.data[k] = v
-	kv.mutex.Unlock()
 }
 
 // Get get value with key
 func (kv *KeyValueStorage) Get(k string) map[string]string {
 	kv.mutex.Lock()
+	defer kv.mutex.Unlock()
 	v := kv.data[k]
-	kv.mutex.Unlock()
 	return v
 }
 
 // List get all keys
 func (kv *KeyValueStorage) List() []string {
 	kv.mutex.Lock()
+	defer kv.mutex.Unlock()
 	keys := make([]string, 0, 200)
 	for k := range kv.data {
 		keys = append(keys, k)
 	}
-	kv.mutex.Unlock()
 	return keys
 }
 
 // NewKVStorage create or load KeyValueStorage and run persist routine
-func NewKVStorage(saveFreq time.Duration) (*KeyValueStorage, chan struct{}) {
-	storage := &KeyValueStorage{}
-	storage.Load()
+func NewKVStorage(saveFreq time.Duration, savePathFolderName string) (*KeyValueStorage, chan struct{}, error) {
+	savePathFolderName, err := filepath.Abs(savePathFolderName)
+	if err != nil {
+		fmt.Println(err)
+		return nil, nil, err
+	}
+	storage := &KeyValueStorage{
+		savePath: savePathFolderName,
+	}
+	err = storage.Load()
+	if err != nil {
+		fmt.Println(err)
+		return storage, nil, err
+	}
 	storage.AutoInit()
 	persistentRoutine := time.NewTicker(saveFreq)
 	quit := make(chan struct{})
@@ -151,5 +166,5 @@ func NewKVStorage(saveFreq time.Duration) (*KeyValueStorage, chan struct{}) {
 			}
 		}
 	}()
-	return storage, quit
+	return storage, quit, nil
 }

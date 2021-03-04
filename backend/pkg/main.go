@@ -17,7 +17,7 @@ import (
 
 func main() {
 	ginServer := server.GetServer()
-	storage, quit := repository.NewKVStorage(1 * time.Minute)
+	storage, quit, _ := repository.NewKVStorage(1*time.Minute, "./+kvdata")
 	defer close(quit)
 	ginServer.GET("/new", func(ctx *gin.Context) {
 		data := map[string]string{
